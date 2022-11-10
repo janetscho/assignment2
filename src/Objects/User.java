@@ -2,6 +2,8 @@ package Objects;
 
 import java.util.ArrayList;
 
+import Pattern.Visitor;
+
 public class User {
     public String name;
     public ArrayList<Tweet> tweets;
@@ -25,6 +27,12 @@ public class User {
 
     public ArrayList<Tweet> getTweets() {
         return tweets;
+    }
+
+    public Tweet setTweet(String message) {
+        Tweet newTweet = new Tweet(name + " " + message);
+        tweets.add(newTweet);
+        return newTweet;
     }
 
     public int totalTweets() {
@@ -57,6 +65,10 @@ public class User {
 
     public void addFollowing(User user) {
         following.add(user);
+    }
+
+    public int visiting(Visitor visitor) {
+        return visitor.visit(this);
     }
 
     public String toString() {

@@ -24,5 +24,8 @@ public class Tweet {
         this.date = date;
     }
 
+    public String toString() {
+        return date + "- " + message;
+    }
 
 }

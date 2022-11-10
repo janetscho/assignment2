@@ -3,11 +3,15 @@ package Page;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.border.Border;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreeNode;
 
 import Objects.Admin;
 import Objects.Group;
@@ -21,7 +25,7 @@ import java.awt.Dimension;
 
 public class MyFrame extends JFrame implements ActionListener {
 
-    private Admin admin = new Admin();
+    private Admin admin;
     
     JPanel panel;
     JPanel buttons;
@@ -40,6 +44,8 @@ public class MyFrame extends JFrame implements ActionListener {
 
     public MyFrame() {
 
+        admin = new Admin();
+
         // Creating the Admin Panel elements
         panel = new JPanel();   // tree panel
         buttons = new JPanel(); // buttons panel
@@ -55,6 +61,9 @@ public class MyFrame extends JFrame implements ActionListener {
         messages = new JButton();   // show messages total
         positive = new JButton();   // show positive percentage
         tree = new JTree();
+
+        TreeNode start = new DefaultMutableTreeNode(admin.getGroup("Root"));
+        TreeModel startModel = new DefaultTreeModel(start, true);
 
         // Labeling all of the buttons
         addU.setText("Add User");
@@ -97,19 +106,11 @@ public class MyFrame extends JFrame implements ActionListener {
         userView.setPreferredSize(new Dimension(390, 40));
 
         // for tree
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-        DefaultMutableTreeNode group = new DefaultMutableTreeNode("Groups");
-        DefaultMutableTreeNode user = new DefaultMutableTreeNode("Users");
+        tree.setModel(startModel);
+        panel.add(tree);
 
-        root.add(group);
-        root.add(user);
-
-        tree = new JTree(root);
-        add(tree);
+        // for admin GUI
         this.setTitle("tweeter teehee");
-
-        //
-
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(700, 400);
         this.setLayout(null);
@@ -119,40 +120,127 @@ public class MyFrame extends JFrame implements ActionListener {
         this.add(buttons);
         this.add(totals);
 
+        // button actions
         addU.addActionListener(new ActionListener() {
+            void letsgo(){}
             @Override
             public void actionPerformed(ActionEvent e) {
+                DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+                DefaultMutableTreeNode selected = ((DefaultMutableTreeNode)tree.getLastSelectedPathComponent());
+                if(selected == null) {
+                    JOptionPane.showMessageDialog(null, "Please select a node.","Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                // gonna need to check if last selected node is a user, cant add if so
+
                 String username = userId.getText();
-                admin.createUser(username);
+                boolean temp = admin.checkUserAgain(username);
+
+                if(!temp) {
+                    JOptionPane.showMessageDialog(null, "User already exists.","Error", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    if(selected.getAllowsChildren() == false) {
+                        JOptionPane.showMessageDialog(null, "Please select a group node.","Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    User usl = admin.addUser(username);
+                    DefaultMutableTreeNode user = new DefaultMutableTreeNode(usl);
+                    user.setAllowsChildren(false);  // not allowed to have children
+                    selected.add(user);
+                    model.reload();
+                }
+                userId.setText("");
             }
         });
         addG.addActionListener(new ActionListener() {
+            void letsgo() {}
             @Override
             public void actionPerformed(ActionEvent e) {
+                DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+                DefaultMutableTreeNode selected = ((DefaultMutableTreeNode)tree.getLastSelectedPathComponent());
+                if(selected == null) {
+                    JOptionPane.showMessageDialog(null, "Please select a node.","Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if(groupId.getText() == "") {
+                    JOptionPane.showMessageDialog(null, "Please type in a name.","Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 String groupname = groupId.getText();
-                admin.createGroup(groupname);
+                boolean temp = admin.checkGroupAgain(groupname);
+
+                if(!temp) {
+                    JOptionPane.showMessageDialog(null, "Group already exists.","Error", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    
+                    if(selected.getAllowsChildren() == false) {
+                        JOptionPane.showMessageDialog(null, "Please select a group node.","Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    Group gorp = (Group) selected.getUserObject();
+                    Group groupie = admin.addGroup(gorp, groupname);
+                    DefaultMutableTreeNode grp = new DefaultMutableTreeNode(groupie);
+                    grp.setAllowsChildren(true);    // allowed to have children
+                    selected.add(grp);
+                    model.reload();
+                }
+                groupId.setText("");
             }
+        });
+
+        userView.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultMutableTreeNode selected = ((DefaultMutableTreeNode)tree.getLastSelectedPathComponent());
+
+                if(selected == null || selected.getAllowsChildren() == true) {
+                    JOptionPane.showMessageDialog(null, "Please select an user.","Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                UserFrame view = new UserFrame();
+                User yo = (User)selected.getUserObject();
+                view.setCurrentUser(admin, yo);
+                view.setVisible(true);
+                view.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            }
+            
         });
 
         userTotal.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(admin.totalUsers());
+                int ans = admin.totalUsers();
+                JOptionPane.showMessageDialog(null, ans,"Total Users", JOptionPane.ERROR_MESSAGE);
             }
         });
         groupTotal.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(admin.totalGroups());
+                int ans = admin.totalGroups();
+                JOptionPane.showMessageDialog(null, ans,"Total Groups", JOptionPane.ERROR_MESSAGE);
             }
         });
 
         messages.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                int ttl = admin.allMessages();
+                JOptionPane.showMessageDialog(null, ttl,"Total Messages ", JOptionPane.ERROR_MESSAGE);
             }
-        }); // need to click on user and then can get user.totalTweets()
+        });
+
+        positive.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                double ttl = admin.postive();
+                JOptionPane.showMessageDialog(null, ttl + "%","Positive Percentage", JOptionPane.ERROR_MESSAGE);
+            }
+            
+        });
 
         //panel.setLayout(new FLowLayout(FlowLayout.LEADING));
 
@@ -167,10 +255,6 @@ public class MyFrame extends JFrame implements ActionListener {
         totals.add(messages);
         totals.add(positive);
         
-    }
-
-    private void userAdded() {
-
     }
 
     @Override
